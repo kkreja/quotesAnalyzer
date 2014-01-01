@@ -7,7 +7,7 @@ import struct
 from io import open
 from pandas import DataFrame, Series, rolling_mean
 import subprocess
-from datetime import datetime,date
+from datetime import datetime,date,timedelta
 import matplotlib.pyplot as plt
 
 from interfaces import DataFeeder, Algorithm
@@ -17,16 +17,25 @@ class GpwDataFeeder( DataFeeder ):
     def __init__(self, startDate, endDate, gpwName):
         super(GpwDataFeeder,self).__init__(startDate, endDate)
         self.gpwName = gpwName
-	self.df = pandas.read_csv('CCC.mst')
+        self.df = pandas.read_csv('CCC.mst')
+#        print self.df.shape
+        self.currPos = self.findStartPoint()
 	#print p[:2]
 	#print p[:2]['<VOL>']
 	#print p[:2]['<OPEN>']
 
     def findStartPoint(self):
-	if (self.startDate )
-	#while datetime.datetime.strptime(str(self.df[:i]['<DTYYYYMMDD>'][0]), '%Y%m%d')-startDate < datetime.timedelta(0):
-        #        i = i + 1;   
-
+        shape = self.df.shape
+#        print self.df[(shape[0]-1):]['<DTYYYYMMDD>']
+#        print self.df.iloc[0]['<DTYYYYMMDD>']        
+        i = 0        
+        while i < shape[0]:
+            curDate = datetime.strptime(str(self.df.iloc[i]['<DTYYYYMMDD>']),'%Y%m%d')
+            diff = curDate - datetime.combine(self.startDate, datetime.min.time())
+            if diff >= timedelta(0):
+                break
+            i = i+1
+        return i
     
     def debugKK(self, level, txt):
         if (level > 0):
@@ -34,12 +43,24 @@ class GpwDataFeeder( DataFeeder ):
         
                                         
     def getData(self):
-        self.debugKK(0,'df poz ' + str(self.dfPosition + 1) + ' size ' + str(self.df.shape[0]))
-        if (self.dfPosition + 1) == self.df.shape[0]:
-            return self.newHour()
-        else:
-            self.dfPosition += 1
-            return self.df.iloc[self.dfPosition]
+#        self.debugKK(1,str(self.currPos >= self.df.shape[0]));
+        if self.currPos >= self.df.shape[0]:
+            return None
+        curDate = datetime.strptime(str(self.df.iloc[self.currPos]['<DTYYYYMMDD>']),'%Y%m%d')
+        diff = curDate - datetime.combine(self.endDate, datetime.min.time());
+#        self.debugKK(1,str(self.currPos >= self.df.shape[0]));        
+        if diff > timedelta(0):
+            return None
+        self.currPos += 1
+        return self.df.iloc[self.currPos-1];
+        
+#        self.debugKK(0,'df poz ' + str(self.dfPosition + 1) + ' size ' + str(self.df.shape[0]))
+#        if (self.dfPosition + 1) == self.df.shape[0]:
+#            return self.newHour()
+#        else:
+#            self.dfPosition += 1
+#            return self.df.iloc[self.dfPosition]
+        return
           
           
 class RolingMeanAlgorithm( Algorithm ):
@@ -92,7 +113,7 @@ class RolingMeanAlgorithm( Algorithm ):
         
           
                 
-feeder = GpwDataFeeder(date(2012, 1, 1),date(2013, 1, 1), 'CCC')
+feeder = GpwDataFeeder(date(2014, 1, 1),date(2014, 3, 1), 'CCC')
 
 #broker = Broker()
 #wallet = Wallet(25000, BuyForOneTenthOfWalletBuyStrategy(), SellIfUpBy10OrDownBy5SellStrategy(), broker)
@@ -105,8 +126,13 @@ alg = RolingMeanAlgorithm(5,20)
 #dataFrame = DataFrame()
 #signals = Series()
 #
-#curFeed = feeder.getData()
-#while curFeed is not None:
+curFeed = feeder.getData()
+lastFeed = curFeed
+while curFeed is not None:
+    lastFeed = curFeed
+    curFeed = feeder.getData()
+    
+print lastFeed
 #    dataFrame = dataFrame.append([curFeed])
 #    #print curFeed
 #    signal = alg.getBuySignals(curFeed)
