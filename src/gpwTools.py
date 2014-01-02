@@ -81,16 +81,16 @@ class RolingMeanAlgorithm( Algorithm ):
 #        x) pewnie masz pomysly na wiecej parametrow"""	
 #        raise NotImplementedError( "Should have implemented this" )
 
-    def getBuySignals( self, measurement ):
+    def getBuySignals( self, measurement, colName ):
         """na wejsciu data frame o zadanych przez InputSettings parametrach,
         na wyjsciu 0,1,-1 kiedy kupowac z kierunkiem - nie wiem czy bedziemy
         mieli takie algorytmy co beda w wyniku dawac sygnaly -1,1?
         """
         #print (self.df)
-        self.df = self.df.append(Series(measurement['ask'],index = ['a']))
+        self.df = self.df.append(Series(measurement[colName],index = ['a']))
         #print measurement.name
         #sys.exit(1)
-        if self.df.shape[0] == 20:
+        if self.df.shape[0] == self.bigAvg:
             curBig = rolling_mean(self.df, self.bigAvg)
             curSmall = rolling_mean(self.df[(self.bigAvg-self.smallAvg):], self.smallAvg)
 #            print "1=========================="
@@ -98,53 +98,75 @@ class RolingMeanAlgorithm( Algorithm ):
 #            print curSmall[-1]
             
             if curBig[-1] < curSmall[-1]:
-                
-                #print "128=========================="
                 self.df = self.df[1:]
-                return [128,measurement.name]
+                return [self.getReturn(1), measurement.name]
             else:
-                #print "129=========================="
                 self.df = self.df[1:]
-                return [130,measurement.name]
+                return [self.getReturn(-1), measurement.name]
         else:
-            return [129,measurement.name]
+            return [0, measurement.name]
 
+    def getReturn(self, curVal):
+        if self.was == 0:
+            self.was = curVal
+            return curVal
+        elif self.was == -1:
+            if curVal == -1:
+                return 0
+            else:
+                self.was = 1
+                return 1
+        elif self.was == 1:
+            if curVal == 1:
+                return 0
+            else:
+                self.was = -1
+                return -1
+        
+        return 0
+            
         
         
           
                 
-feeder = GpwDataFeeder(date(2014, 1, 1),date(2014, 3, 1), 'CCC')
+feeder = GpwDataFeeder(date(2013, 1, 1),date(2014, 3, 1), 'CCC')
 
 #broker = Broker()
 #wallet = Wallet(25000, BuyForOneTenthOfWalletBuyStrategy(), SellIfUpBy10OrDownBy5SellStrategy(), broker)
-alg = RolingMeanAlgorithm(5,20)
+alg = RolingMeanAlgorithm(10,40)
 
 #sim = Simulator(date(2012, 1, 1), date(2012, 1, 2), wallet, alg, feeder)
 
 
 
-#dataFrame = DataFrame()
-#signals = Series()
+dataFrame = DataFrame()
+signals = Series()
 #
 curFeed = feeder.getData()
-lastFeed = curFeed
+#lastFeed = curFeed
 while curFeed is not None:
-    lastFeed = curFeed
+#    lastFeed = curFeed
+    dataFrame = dataFrame.append([curFeed])
+#    #print curFeed
+    signal = alg.getBuySignals(curFeed, '<CLOSE>')
+    signals = signals.append(Series(signal[0], index = [signal[1]]))
+#    curFeed = feeder.getData()
+
     curFeed = feeder.getData()
     
-print lastFeed
+#print lastFeed
 #    dataFrame = dataFrame.append([curFeed])
 #    #print curFeed
 #    signal = alg.getBuySignals(curFeed)
 #    signals = signals.append(Series(signal[0], index = [signal[1]]))    
 #    curFeed = feeder.getData()
 #
-#dataFrame['ask'].plot();
+dataFrame['<CLOSE>'].plot();
 ##rolling_mean(dataFrame['ask'], 20).plot()
 ##rolling_mean(dataFrame['ask'], 5).plot()
 ##print rolling_mean(dataFrame['ask'], 20)[20:30]
 ##print rolling_mean(dataFrame['ask'], 5)[20:30]
 ##print signals[20:30]
-#signals.plot()
-#plt.show()
+signals.plot()
+plt.show()
 
