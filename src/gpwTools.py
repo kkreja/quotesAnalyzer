@@ -133,7 +133,7 @@ class RolingMeanAlgorithm( Algorithm ):
         
           
                 
-feeder = GpwDataFeeder(date(2013, 1, 1),date(2014, 3, 1), 'CCC')
+feeder = GpwDataFeeder(date(2012, 1, 1),date(2012, 12, 31), 'CCC')
 
 broker = Broker()
 wallet = Wallet(25000, BuyForOneTenthOfWalletBuyStrategy(), SellIfUpBy10OrDownBy5SellStrategy(), broker)
