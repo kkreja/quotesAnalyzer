@@ -6,6 +6,7 @@ Created on Sat Mar 16 18:49:21 2013
 """
 
 #from datetime import date
+import math
 
 #!/usr/bin/python
 class BuyStrategy( object ):
@@ -25,7 +26,7 @@ class SellStrategy( object ):
 class SellIfUpBy10OrDownBy5SellStrategy( SellStrategy ):
     def processOpenPositions(self, wallet, currentPrice):
         positionsToSell = []
-        for openPosition in wallet.getOpenPositions:
+        for openPosition in wallet.getOpenPositions():
             if currentPrice > (1.1 * openPosition['buyPrice']) or \
             currentPrice < (0.95 * openPosition['buyPrice']):
                     positionsToSell.append(openPosition)
@@ -37,14 +38,16 @@ class Broker( object ):
         self.currentPrice = currentPrice
         self.currentTime = currentTime
     def tryToBuy(self, moneyToInvest,direction):
+        print 'broker '
+        print str(math.floor(moneyToInvest/self.currentPrice))
         return {'buyPrice': self.currentPrice, 
-                'nrOfInvested': moneyToInvest/self.currentPrice,
+                'nrOfInvested': math.floor(moneyToInvest/self.currentPrice),
                 'time': self.currentTime}
     def tryToSell(self, openPosition):
         lostOrGainedMoney = (self.currentPrice-openPosition['buyPrice'])*openPosition['nrOfInvested']
-        openPosition['nrOfInvested'] = 0
+        #openPosition['nrOfInvested'] = 0
         #TODO: zalogowac sprzedaz czy zysk czy strata itp
-        return openPosition,lostOrGainedMoney
+        return lostOrGainedMoney
 
 class Wallet( object ):
     """trzyma informacje o:
@@ -61,7 +64,15 @@ class Wallet( object ):
         self.broker = broker
         
     def getMoneyLeft(self):
-        return self.money        
+        return self.money
+        
+    def printValue(self):
+        print "money: " + str(self.money)
+        print "open positions"
+        print self.openPositions        
+        
+    def getOpenPositions(self):
+        return self.openPositions
         
     def useNewBuySignal(self, currentPrice, direction):
         moneyToInvest = self.buyStrategy.forHowMuchShouldIBuy(self, currentPrice, direction)
@@ -74,13 +85,18 @@ class Wallet( object ):
         for position in self.openPositions:
             if (position['nrOfInvested'] == 0):
                 self.openPositions.remove(position)
+                print "deleting " + str(position)
         
     def checkIfWeNeedToSellSomething(self, currentPrice):
+        print self.openPositions
         positionsToSell = self.sellStrategy.processOpenPositions(self, currentPrice)
         for position in positionsToSell:
             gainedOrLostMoney = self.broker.tryToSell(position)
-            self.money += gainedOrLostMoney
+            if gainedOrLostMoney != 0:
+                position['nrOfInvested'] = 0            
+                self.money += gainedOrLostMoney
         self.deleteEmptyPositions()
+        print self.openPositions
         
     def getBroker(self):
         return self.broker
@@ -141,14 +157,23 @@ class Simulator( object ):
         
     def run(self):
         feederData = self.feeder.getData()
+        lastFeederData = feederData
+        startVal = feederData['<CLOSE>']
+        startMoney = self.wallet.getMoneyLeft()
         while feederData is not None:
-            self.currentTime = feederData.name
-            self.broker.setCurrentPriceAndTime(feederData['ask'], self.currentTime)
-            buySignal = self.algorithm.getBuySignals(feederData)
+            #print feederData
+            self.currentTime = feederData['<DTYYYYMMDD>']
+            #print self.currentTime
+            self.broker.setCurrentPriceAndTime(feederData['<CLOSE>'], self.currentTime)
+            buySignal = self.algorithm.getBuySignals(feederData,'<CLOSE>')
             if buySignal != 0:
-                self.wallet.useNewBuySignal(self, feederData['ask'], buySignal)
-            self.wallet.checkIfWeNeedToSellSomething(feederData['bid'])
+                self.wallet.useNewBuySignal(feederData['<CLOSE>'], buySignal)
+            self.wallet.checkIfWeNeedToSellSomething(feederData['<CLOSE>'])
+            lastFeederData = feederData
             feederData = self.feeder.getData()
+        print "endVal/startVal " + str(lastFeederData['<CLOSE>']/startVal)
+        print "endMon/startMon " + str(self.wallet.getMoneyLeft()/startMoney)
+        print self.wallet.printValue()
 
 
 

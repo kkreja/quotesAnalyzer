@@ -10,7 +10,9 @@ import subprocess
 from datetime import datetime,date,timedelta
 import matplotlib.pyplot as plt
 
-from interfaces import DataFeeder, Algorithm
+from interfaces import *
+
+#from interfaces import DataFeeder, Algorithm
 
 class GpwDataFeeder( DataFeeder ):
     
@@ -99,12 +101,14 @@ class RolingMeanAlgorithm( Algorithm ):
             
             if curBig[-1] < curSmall[-1]:
                 self.df = self.df[1:]
-                return [self.getReturn(1), measurement.name]
+                #return [self.getReturn(1), measurement.name]
+                return self.getReturn(1)
             else:
                 self.df = self.df[1:]
-                return [self.getReturn(-1), measurement.name]
+                #return [self.getReturn(-1), measurement.name]
+                return self.getReturn(-1)
         else:
-            return [0, measurement.name]
+            return 0
 
     def getReturn(self, curVal):
         if self.was == 0:
@@ -131,42 +135,44 @@ class RolingMeanAlgorithm( Algorithm ):
                 
 feeder = GpwDataFeeder(date(2013, 1, 1),date(2014, 3, 1), 'CCC')
 
-#broker = Broker()
-#wallet = Wallet(25000, BuyForOneTenthOfWalletBuyStrategy(), SellIfUpBy10OrDownBy5SellStrategy(), broker)
-alg = RolingMeanAlgorithm(10,40)
+broker = Broker()
+wallet = Wallet(25000, BuyForOneTenthOfWalletBuyStrategy(), SellIfUpBy10OrDownBy5SellStrategy(), broker)
+alg = RolingMeanAlgorithm(5,20)
 
-#sim = Simulator(date(2012, 1, 1), date(2012, 1, 2), wallet, alg, feeder)
+sim = Simulator(wallet, alg, feeder)
 
+sim.run()
 
+exit
 
-dataFrame = DataFrame()
-signals = Series()
-#
-curFeed = feeder.getData()
-#lastFeed = curFeed
-while curFeed is not None:
-#    lastFeed = curFeed
-    dataFrame = dataFrame.append([curFeed])
-#    #print curFeed
-    signal = alg.getBuySignals(curFeed, '<CLOSE>')
-    signals = signals.append(Series(signal[0], index = [signal[1]]))
-#    curFeed = feeder.getData()
-
-    curFeed = feeder.getData()
-    
-#print lastFeed
+#dataFrame = DataFrame()
+#signals = Series()
+##
+#curFeed = feeder.getData()
+##lastFeed = curFeed
+#while curFeed is not None:
+##    lastFeed = curFeed
 #    dataFrame = dataFrame.append([curFeed])
-#    #print curFeed
-#    signal = alg.getBuySignals(curFeed)
-#    signals = signals.append(Series(signal[0], index = [signal[1]]))    
-#    curFeed = feeder.getData()
+##    #print curFeed
+#    signal = alg.getBuySignals(curFeed, '<CLOSE>')
+#    signals = signals.append(Series(signal[0], index = [signal[1]]))
+##    curFeed = feeder.getData()
 #
-dataFrame['<CLOSE>'].plot();
-##rolling_mean(dataFrame['ask'], 20).plot()
-##rolling_mean(dataFrame['ask'], 5).plot()
-##print rolling_mean(dataFrame['ask'], 20)[20:30]
-##print rolling_mean(dataFrame['ask'], 5)[20:30]
-##print signals[20:30]
-signals.plot()
-plt.show()
+#    curFeed = feeder.getData()
+#    
+##print lastFeed
+##    dataFrame = dataFrame.append([curFeed])
+##    #print curFeed
+##    signal = alg.getBuySignals(curFeed)
+##    signals = signals.append(Series(signal[0], index = [signal[1]]))    
+##    curFeed = feeder.getData()
+##
+#dataFrame['<CLOSE>'].plot();
+###rolling_mean(dataFrame['ask'], 20).plot()
+###rolling_mean(dataFrame['ask'], 5).plot()
+###print rolling_mean(dataFrame['ask'], 20)[20:30]
+###print rolling_mean(dataFrame['ask'], 5)[20:30]
+###print signals[20:30]
+#signals.plot()
+#plt.show()
 
